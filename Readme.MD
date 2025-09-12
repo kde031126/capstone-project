@@ -25,4 +25,4 @@
 
 - **Frontend**: React  
 - **Backend**: Spring Boot
-- ""AI": Whisper, OpenAI LLM, STT 
+- **AI**: Whisper, OpenAI LLM, STT 
