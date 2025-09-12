@@ -1,4 +1,4 @@
-## Team Ground Rule
+## 👥 Team Ground Rule
 
 ### 1️⃣ 커뮤니케이션 및 협업
 - 모든 커뮤니케이션은 **카카오톡**을 기본 채널로 사용한다.
