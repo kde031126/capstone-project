@@ -1,0 +1,6 @@
+torch>=2.0.0
+torchaudio>=2.0.0
+transformers>=4.40.0
+pydub>=0.25.1
+hgtk>=0.1.6
+g2pk>=0.1.5
