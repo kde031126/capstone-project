@@ -174,72 +174,73 @@ def get_standard_phonemes_with_position_g2pk(target_text: str):
             
     return standard_phoneme_sequence
 
-# 2. Sequence Alignment (오류 라벨링) 함수
+# 2. Sequence Alignment (Levenshtein DP + 역추적)
 # ----------------------------------------------------
-def perform_sequence_alignment(standard_seq, child_seq):
+def perform_sequence_alignment_levenshtein(standard_seq, child_seq):
     """
     표준 음소열과 아동 음소열을 비교하여 오류 라벨을 생성합니다.
+    Levenshtein 거리 기반 DP + 역추적으로 정확한 위치 탐지
     """
-    s = SequenceMatcher(None, standard_seq, child_seq)
+    len_s = len(standard_seq)
+    len_c = len(child_seq)
     
+    # 1. DP 테이블 초기화
+    dp = [[0]*(len_c+1) for _ in range(len_s+1)]
+    for i in range(len_s+1):
+        dp[i][0] = i  # 표준에서 삭제
+    for j in range(len_c+1):
+        dp[0][j] = j  # 아동에서 삽입
+    
+    # 2. DP 테이블 채우기
+    for i in range(1, len_s+1):
+        for j in range(1, len_c+1):
+            if standard_seq[i-1] == child_seq[j-1]:
+                dp[i][j] = dp[i-1][j-1]
+            else:
+                dp[i][j] = min(
+                    dp[i-1][j-1] + 1,  # 교체
+                    dp[i][j-1] + 1,    # 삽입
+                    dp[i-1][j] + 1     # 삭제
+                )
+    
+    # 3. 역추적
+    i, j = len_s, len_c
     alignment_result = []
+    while i > 0 or j > 0:
+        if i > 0 and j > 0 and standard_seq[i-1] == child_seq[j-1]:
+            alignment_result.append({
+                'standard_phoneme': standard_seq[i-1],
+                'child_phoneme': child_seq[j-1],
+                'label': '정확'
+            })
+            i -= 1
+            j -= 1
+        elif i > 0 and j > 0 and dp[i][j] == dp[i-1][j-1] + 1:
+            alignment_result.append({
+                'standard_phoneme': standard_seq[i-1],
+                'child_phoneme': child_seq[j-1],
+                'label': '교체'
+            })
+            i -= 1
+            j -= 1
+        elif j > 0 and dp[i][j] == dp[i][j-1] + 1:
+            alignment_result.append({
+                'standard_phoneme': '∅',
+                'child_phoneme': child_seq[j-1],
+                'label': '첨가'
+            })
+            j -= 1
+        elif i > 0 and dp[i][j] == dp[i-1][j] + 1:
+            alignment_result.append({
+                'standard_phoneme': standard_seq[i-1],
+                'child_phoneme': '∅',
+                'label': '탈락'
+            })
+            i -= 1
     
-    # opcodes: 'equal', 'replace', 'insert', 'delete'
-    for opcode, i1, i2, j1, j2 in s.get_opcodes():
-        
-        # 'equal': 표준과 아동 발음이 일치
-        if opcode == 'equal':
-            for i in range(i1, i2):
-                alignment_result.append({
-                    'standard_phoneme': standard_seq[i],
-                    'child_phoneme': child_seq[j1 + (i - i1)],
-                    'label': '정확'
-                })
-        
-        # 'replace': 교체 오류 (표준의 i1~i2와 아동의 j1~j2 길이가 다를 수 있음)
-        elif opcode == 'replace':
-            len_std = i2 - i1
-            len_child = j2 - j1
-            
-            # 긴 쪽의 길이를 기준으로 반복 (누락/첨가를 포함한 교체 처리)
-            for k in range(max(len_std, len_child)):
-                std_p = standard_seq[i1 + k] if k < len_std else '∅' # ∅: Null
-                child_p = child_seq[j1 + k] if k < len_child else '∅'
-                
-                # '∅'가 들어갔을 경우를 고려하여 라벨링
-                if std_p == '∅':
-                    label = '첨가' # 아동 발음에만 있음
-                elif child_p == '∅':
-                    label = '탈락' # 표준 발음에만 있음
-                else:
-                    label = '교체' # 둘 다 있으나 다름
-                    
-                alignment_result.append({
-                    'standard_phoneme': std_p,
-                    'child_phoneme': child_p,
-                    'label': label
-                })
-
-
-        # 'insert': 첨가 오류 (표준에 없고 아동 발음에만 있음)
-        elif opcode == 'insert':
-            for j in range(j1, j2):
-                alignment_result.append({
-                    'standard_phoneme': '∅',
-                    'child_phoneme': child_seq[j],
-                    'label': '첨가'
-                })
-
-        # 'delete': 탈락 오류 (표준에 있고 아동 발음에 없음)
-        elif opcode == 'delete':
-            for i in range(i1, i2):
-                alignment_result.append({
-                    'standard_phoneme': standard_seq[i],
-                    'child_phoneme': '∅',
-                    'label': '탈락'
-                })
-                
+    alignment_result.reverse()  # 역순으로 append했으므로 뒤집기
     return alignment_result
+
 
 def split_phoneme(ph):
     """
@@ -272,7 +273,7 @@ if __name__ == "__main__":
     if child_phonemes:
         # 3. Sequence Alignment를 통한 오류 분석
         print("\n--- Sequence Alignment 분석 시작 ---")
-        alignment_results = perform_sequence_alignment(standard_phonemes, child_phonemes)
+        alignment_results = perform_sequence_alignment_levenshtein(standard_phonemes, child_phonemes)
         
         # 4. 분석 결과 출력 (표 형식)
         print("\n[ 최종 발음 오류 분석 결과 ]")
