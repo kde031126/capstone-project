@@ -7,15 +7,19 @@ import os
 from pydub import AudioSegment
 import hgtk
 import re
-from difflib import SequenceMatcher 
 from g2pk import G2p
 g2p = G2p()
+
+# warning 문구들 지우기
+import warnings
+warnings.filterwarnings("ignore")
+import logging
+logging.getLogger("transformers").setLevel(logging.ERROR)
 
 # ffmpeg / ffprobe 경로 수동 지정
 os.environ["FFMPEG_BINARY"] = r"C:\FFmpeg\bin\ffmpeg.exe"
 os.environ["FFPROBE_BINARY"] = r"C:\FFmpeg\bin\ffprobe.exe"
 AudioSegment.converter = r"C:\FFmpeg\bin\ffmpeg.exe"
-AudioSegment.ffmpeg = r"C:\FFmpeg\bin\ffmpeg.exe"
 AudioSegment.ffprobe = r"C:\FFmpeg\bin\ffprobe.exe"
 
 # mp3 → wav 변환 함수
@@ -98,8 +102,11 @@ def transcribe_audio(audio_path: str):
                         child_phoneme_sequence.append(f"{m}_중")
                 
                 # 종성 처리 (**추가됨**)
-                if jong != ' ':
+                if jong != '':
                     child_phoneme_sequence.append(f"{jong}_종")
+                else:
+                    # 종성이 없는 경우 명시적으로 ∅_종 추가
+                    child_phoneme_sequence.append("∅_종")
                     
             except hgtk.exception.NotHangulException:
                 continue
@@ -109,8 +116,8 @@ def transcribe_audio(audio_path: str):
         child_phoneme_sequence = list(re.sub(r'\s+', '', transcription))
 
     print("------------------------------------------")
-    print(f"🚀 최종 인식 결과 : {transcription}")
-    print(f"🚀 최종 인식 결과 (음소열 리스트): {child_phoneme_sequence}") # 리스트 출력 확인
+    print(f"최종 인식 결과 : {transcription}")
+    print(f"최종 인식 결과 (음소열 리스트): {child_phoneme_sequence}") # 리스트 출력 확인
     print("------------------------------------------")
     return child_phoneme_sequence
 
@@ -146,7 +153,7 @@ def get_standard_phonemes_with_position_g2pk(target_text: str):
             # hgtk.letter.decompose: '과' -> ('ㄱ', 'ㅗ', 'ㅏ') 
             cho, jung, jong = hgtk.letter.decompose(char)
             
-            # 💡 표준 발음이 적용된 후의 초/중/종성 분해
+            # 표준 발음이 적용된 후의 초/중/종성 분해
             
             # 초성 처리
             if cho != ' ': # 초성이 있는 경우
@@ -161,12 +168,11 @@ def get_standard_phonemes_with_position_g2pk(target_text: str):
                     standard_phoneme_sequence.append(f"{m}_중")
             
             # 종성 처리
-            if jong != ' ': # 종성이 있는 경우
-                # hgtk.letter.decompose_jamo는 쌍자음/겹받침도 개별 자음으로 분해하지 않고 그대로 반환합니다.
-                # 예: '값' -> 'ㅂㅅ'
-                # g2pk를 거쳤기 때문에 표준 발음법에 따른 종성 하나만 남습니다.
-                # 예: '닭'의 발음 '닥' -> 'ㄱ'
+            if jong != '':
                 standard_phoneme_sequence.append(f"{jong}_종")
+            else:
+                # 종성이 없는 경우 명시적으로 ∅_종 추가
+                standard_phoneme_sequence.append("∅_종")
                 
         except hgtk.exception.NotHangulException:
             # 한글이 아닌 문자
@@ -257,7 +263,7 @@ def split_phoneme(ph):
 if __name__ == "__main__":
     print("Wav2Vec 2.0 ASR 추론 및 발음 오류 분석 스크립트")
     
-    # 🚨 테스트를 위한 타겟 텍스트 정의 🚨
+    # 테스트를 위한 타겟 텍스트 정의 
     # 예를 들어, 아동이 "사과"라는 단어를 발음해야 한다고 가정
     TARGET_TEXT = "사과"
     
@@ -265,7 +271,7 @@ if __name__ == "__main__":
 
     # 1. 표준 발음 음소열 생성
     standard_phonemes = get_standard_phonemes_with_position_g2pk(TARGET_TEXT)
-    print(f"✅ 표준 음소열 (위치 포함): {standard_phonemes}")
+    print(f"표준 음소열 (위치 포함): {standard_phonemes}")
     
     # 2. 아동 발음 ASR 추론 및 음소열 변환
     child_phonemes = transcribe_audio(TEST_AUDIO_PATH)
@@ -300,7 +306,8 @@ if __name__ == "__main__":
 
                 # errors 리스트에 저장
                 errors.append({
-                    "phoneme": phoneme,
+                    "standard_phoneme": std_ph,
+                    "child_phoneme": child_ph,
                     "position": position,
                     "type": label
                 })
@@ -308,6 +315,7 @@ if __name__ == "__main__":
         print("------------------------------------------------------------------------")
         print(f"총 오류 개수: {error_count}")
         for e in errors:
-            print(f"- 음소: {e['phoneme']}, 위치: {e['position']}, 유형: {e['type']}")
+            print(f"- 표준 음소: {e['standard_phoneme']}, 아동 음소: {e['child_phoneme']}, "
+          f"위치: {e['position']}, 유형: {e['type']}")
         
     print("\n--- 발음 오류 분석 테스트 완료 ---")
