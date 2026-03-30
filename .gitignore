@@ -5,4 +5,7 @@ venv/
 .vscode/
 
 # Audio
-audio/
+audio
+
+__pycache__/
+*.pyc
