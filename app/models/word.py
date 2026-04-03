@@ -6,4 +6,5 @@ class Word(Base):
 
     word_id = Column(Integer, primary_key=True, index=True)
     word_text = Column(String(100), nullable=False)
-    standard_phonemes = Column(Text, nullable=False)
+    standard_phonemes = Column(String, nullable=False)
+    image_url = Column(String, nullable=False)
