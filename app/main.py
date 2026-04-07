@@ -30,7 +30,8 @@ app.add_middleware(
 # 4. 라우터 등록
 app.include_router(users.router, prefix="/users", tags=["Users"])
 app.include_router(steps.router, prefix="/steps", tags=["Steps"])
-# sessions.py, records.py 등을 app/routers/ 폴더에 만들고 여기에 추가하면 됩니다.
+app.include_router(sessions.router, prefix="/sessions", tags=["Sessions"])
+app.include_router(records.router, prefix="/records", tags=["Records"])
 
 @app.get("/")
 def root():

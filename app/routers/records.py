@@ -1,55 +1,64 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 from sqlalchemy.orm import Session
-from typing import List
-import uuid
+from datetime import datetime
 
 from app.db.session import get_db
 from app.models.record import Record
 from app.models.phoneme_error import PhonemeError
+from app.models.word import Word
+from app.models.practice_session import PracticeSession # user_id를 가져오기 위해 추가
 from app.schemas.record import RecordResponse
-from app.services import ai_engine # 우리가 만든 가짜 엔진!
+from app.services import ai_engine, alignment
 
-router = APIRouter()
+router = APIRouter(prefix="/records", tags=["Records"])
 
-@router.post("/", response_model=RecordResponse)
+@router.post("/", response_model=RecordResponse, status_code=status.HTTP_201_CREATED)
 async def create_record(
     session_id: int = Form(...),
     word_id: int = Form(...),
     audio_file: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
-    """
-    아이의 음성을 받아 AI로 분석하고 오답 노트를 생성합니다.
-    """
-    # 1. 파일 저장 로직 (실제 서비스 시 S3나 로컬 폴더에 저장)
-    # 지금은 파일이 잘 왔는지만 확인합니다.
-    content = await audio_file.read()
-    print(f"🎤 분석 시작: 세션 {session_id}, 단어 {word_id}, 파일명 {audio_file.filename}")
+    # 1. 세션 정보 확인 (어떤 유저의 기록인지 알아내기 위해)
+    session_data = db.query(PracticeSession).filter(PracticeSession.session_id == session_id).first()
+    if not session_data:
+        raise HTTPException(status_code=404, detail="해당 세션을 찾을 수 없습니다.")
 
-    # 2. AI 엔진 호출 (가짜 데이터 반환 중)
-    # 나중에 실제 파인튜닝 모델이 완성되면 여기서 진짜 분석을 수행합니다.
-    ai_result = ai_engine.predict_speech(content)
+    # 2. 목표 단어 정보 가져오기
+    word_data = db.query(Word).filter(Word.word_id == word_id).first()
+    if not word_data:
+        raise HTTPException(status_code=404, detail="단어를 찾을 수 없습니다.")
+
+    # 3. 오디오 파일 읽기
+    content = await audio_file.read()
+
+    # 4. [AI Engine] 음성 인식 및 음소 변환
+    # ai_result 예시: {"child_text": "사과", "child_phonemes": "ㅅㅏㄱㅗㅏ"}
+    ai_result = ai_engine.run_ai_pipeline(content, word_data.word_text)
     
-    # 3. Record (녹음 결과) 저장
+    # 5. [Alignment] 정답과 비교하여 상세 에러 분석
+    # errors_list 예시: [{"target": "ㄱ", "error": "ㅂ", "type": "substitution", "pos": "onset"}]
+    errors_list = alignment.align_phonemes(
+        word_data.standard_phonemes, # 목표 음소
+        ai_result["child_phonemes"]   # 아이 음소
+    )
+
+    # 6. Record (학습 결과) 저장 - user_id 포함!
     new_record = Record(
+        user_id=session_data.user_id,  # [중요] 세션에서 user_id를 가져와 저장
         session_id=session_id,
         word_id=word_id,
-        child_text="사과", # AI가 인식한 텍스트 (가짜)
-        child_phonemes="ㅅ ㅏ ㄱ ㅗ ㅏ", # AI가 분석한 음소 (가짜)
-        is_correct=False # 테스트를 위해 틀린 것으로 설정
+        child_text=ai_result["child_text"],
+        child_phonemes=ai_result["child_phonemes"],
+        is_correct=len(errors_list) == 0,
+        created_at=datetime.utcnow()
     )
     db.add(new_record)
-    db.commit()
-    db.refresh(new_record)
+    db.flush() # record_id를 미리 생성 (commit 전)
 
-    # 4. Phoneme_Errors (음소 단위 오답) 저장
-    # AI가 분석한 '틀린 음소' 리스트를 순회하며 저장합니다.
-    fake_errors = [
-        {"target": "ㅜ", "error": "ㅗ", "type": "substitution", "pos": 4}
-    ]
-    
+    # 7. Phoneme_Errors (상세 오답) 저장
     error_objects = []
-    for err in fake_errors:
+    for err in errors_list:
         new_error = PhonemeError(
             record_id=new_record.record_id,
             target_phoneme=err["target"],
@@ -61,13 +70,16 @@ async def create_record(
         error_objects.append(new_error)
     
     db.commit()
+    db.refresh(new_record)
 
-    # 5. 최종 응답 (스키마에 맞춰서 리턴)
+    # 최종 응답 구성
     return {
         "record_id": new_record.record_id,
+        "session_id": new_record.session_id,
+        "word_id": new_record.word_id,
         "is_correct": new_record.is_correct,
-        "child_text": new_record.child_text,
-        "child_phonemes": new_record.child_phonemes,
+        "child_text": new_record.child_text or "분석 실패",
+        "child_phonemes": new_record.child_phonemes or "",
         "created_at": new_record.created_at,
-        "errors": error_objects # 관계형 데이터를 리스트로 묶어 전달
+        "errors": error_objects
     }

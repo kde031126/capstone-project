@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String
 from app.models.base import Base
+from sqlalchemy.orm import relationship
 
 class User(Base):
     __tablename__ = "users"
@@ -9,3 +10,5 @@ class User(Base):
     user_name = Column(String, nullable=False)
     birth_year = Column(Integer)
     guardian_name = Column(String)
+
+    reports = relationship("ParentReport", back_populates="user")
