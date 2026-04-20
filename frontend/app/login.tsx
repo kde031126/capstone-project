@@ -11,42 +11,55 @@ import {
     View,
 } from 'react-native';
 
-import { submitParentLogin } from '@/lib/api';
+// auth.ts에서 수정된 loginOrCreateUser를 가져옵니다.
+import { loginOrCreateUser } from '@/api/auth';
 
 export default function LoginScreen() {
   const router = useRouter();
+  
+  // 입력 상태 관리
   const [parentEmail, setParentEmail] = useState('');
   const [childName, setChildName] = useState('Mina');
   const [age, setAge] = useState('6');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleContinue = async () => {
-    const trimmedEmail = parentEmail.trim() || 'parent@suksuk.app';
+    // 1. 데이터 전처리
+    const trimmedEmail = parentEmail.trim() || 'test@suksuk.app';
     const trimmedChildName = childName.trim() || 'Mina';
-    const parsedAge = Number.parseInt(age.trim() || '6', 10);
-    const childAge = Number.isNaN(parsedAge) ? 6 : parsedAge;
+    
+    // 2. 백엔드 스키마(birth_year)에 맞게 나이를 출생연도로 변환
+    // 2026년 기준 6살이면 2020년생으로 계산
+    const currentYear = new Date().getFullYear();
+    const inputAge = Number.parseInt(age.trim() || '6', 10);
+    const calculatedBirthYear = currentYear - inputAge;
 
     try {
       setIsSubmitting(true);
 
-      await submitParentLogin({
-        parentEmail: trimmedEmail,
-        childName: trimmedChildName,
-        age: childAge,
+      // 3. 백엔드 UserCreate 규격에 100% 맞춰서 전송
+      const userData = await loginOrCreateUser({
+        user_name: trimmedChildName,      // 스키마 필드명 일치
+        birth_year: calculatedBirthYear,  // 스키마 필드명 일치 (int)
+        guardian_name: trimmedEmail,      // 스키마 필드명 일치 (보호자 이메일을 이름으로 활용)
+        firebase_uid: `temp_${trimmedEmail}`, // 스키마 필드명 일치 (Optional)
       });
 
+      console.log("✅ 서버 응답 성공:", userData);
+
+      // 4. 성공 시 다음 화면으로 이동 (서버에서 준 실제 user_id 전달)
       router.replace({
         pathname: '/(tabs)',
-        params: {
-          childName: trimmedChildName,
-          age: String(childAge),
-          parentEmail: trimmedEmail,
+        params: { 
+          userId: String(userData.user_id),
+          childName: userData.user_name 
         },
       });
     } catch (error) {
+      console.error("❌ 통신 에러 상세:", error);
       Alert.alert(
         'Backend connection error',
-        error instanceof Error ? error.message : 'Unable to connect to the API server.'
+        error instanceof Error ? error.message : '데이터 형식이 맞지 않거나 서버에 연결할 수 없습니다.'
       );
     } finally {
       setIsSubmitting(false);
@@ -58,7 +71,6 @@ export default function LoginScreen() {
       router.back();
       return;
     }
-
     router.replace('/welcome');
   };
 
@@ -75,7 +87,7 @@ export default function LoginScreen() {
         </Text>
 
         <View style={styles.card}>
-          <Text style={styles.label}>Parent email</Text>
+          <Text style={styles.label}>Parent email (Guardian)</Text>
           <TextInput
             value={parentEmail}
             onChangeText={setParentEmail}
@@ -95,7 +107,7 @@ export default function LoginScreen() {
             placeholderTextColor="#8A8FA3"
           />
 
-          <Text style={styles.label}>Age</Text>
+          <Text style={styles.label}>Age (Calculated to Birth Year)</Text>
           <TextInput
             value={age}
             onChangeText={setAge}
@@ -120,49 +132,14 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#F5F7FF',
-  },
-  container: {
-    padding: 24,
-    justifyContent: 'center',
-    flexGrow: 1,
-  },
-  backButton: {
-    alignSelf: 'flex-start',
-    paddingVertical: 8,
-    marginBottom: 6,
-  },
-  backButtonText: {
-    color: '#6C4CE4',
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  title: {
-    fontSize: 30,
-    fontWeight: '800',
-    color: '#1F2544',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: '#5C677D',
-    marginBottom: 20,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    padding: 18,
-    gap: 10,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#33415C',
-    marginTop: 6,
-  },
+  safeArea: { flex: 1, backgroundColor: '#F5F7FF' },
+  container: { padding: 24, justifyContent: 'center', flexGrow: 1 },
+  backButton: { alignSelf: 'flex-start', paddingVertical: 8, marginBottom: 6 },
+  backButtonText: { color: '#6C4CE4', fontWeight: '700', fontSize: 14 },
+  title: { fontSize: 30, fontWeight: '800', color: '#1F2544', marginBottom: 8 },
+  subtitle: { fontSize: 15, lineHeight: 22, color: '#5C677D', marginBottom: 20 },
+  card: { backgroundColor: '#FFFFFF', borderRadius: 22, padding: 18, gap: 10 },
+  label: { fontSize: 14, fontWeight: '700', color: '#33415C', marginTop: 6 },
   input: {
     backgroundColor: '#F7F8FC',
     borderRadius: 14,
@@ -173,27 +150,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
-  primaryButton: {
-    backgroundColor: '#6C4CE4',
-    borderRadius: 16,
-    paddingVertical: 15,
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  primaryButtonDisabled: {
-    opacity: 0.7,
-  },
-  primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  secondaryButton: {
-    alignItems: 'center',
-    paddingTop: 10,
-  },
-  secondaryButtonText: {
-    color: '#6C4CE4',
-    fontWeight: '700',
-  },
+  primaryButton: { backgroundColor: '#6C4CE4', borderRadius: 16, paddingVertical: 15, alignItems: 'center', marginTop: 12 },
+  primaryButtonDisabled: { opacity: 0.7 },
+  primaryButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
 });

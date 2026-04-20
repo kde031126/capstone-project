@@ -41,3 +41,6 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
     if not db_user:
         raise HTTPException(status_code=404, detail="유저를 찾을 수 없습니다.")
     return db_user
+
+
+
