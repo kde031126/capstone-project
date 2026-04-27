@@ -28,12 +28,12 @@ export default function LoginScreen() {
 
     try {
       setIsSubmitting(true);
-
-      await submitParentLogin({
-        parentEmail: trimmedEmail,
-        childName: trimmedChildName,
-        age: childAge,
-      });
+ 
+      // await submitParentLogin({
+      //   parentEmail: trimmedEmail,
+      //   childName: trimmedChildName,
+      //   age: childAge,
+      // });
 
       router.replace({
         pathname: '/(tabs)',

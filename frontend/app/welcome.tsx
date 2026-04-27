@@ -32,7 +32,7 @@ export default function WelcomeScreen() {
             <View style={styles.dot} />
           </View>
 
-          <Pressable style={styles.primaryButton} onPress={() => router.push('/login')}>
+          <Pressable style={styles.primaryButton} onPress={() => router.push('/(tabs)')}>
             <Text style={styles.primaryButtonText}>시작하기</Text>
           </Pressable>
         </View>

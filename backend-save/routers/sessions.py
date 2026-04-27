@@ -11,7 +11,7 @@ from schemas.practice_session import SessionCreate, SessionResponse
 from services.recommendation import get_personalized_word_list
 from services import report  # [확인] 리포트 서비스
 
-router = APIRouter(tags=["Sessions"])
+router = APIRouter(prefix="/sessions", tags=["Sessions"])
 
 # 1. 세션 시작 (POST) - 그대로 유지
 @router.post("/", response_model=SessionResponse, status_code=status.HTTP_201_CREATED)

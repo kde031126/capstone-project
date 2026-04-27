@@ -405,34 +405,51 @@ export default function RoadmapExerciseScreen() {
     }
   };
 
-  const stopRecording = async (word: WordExercise, key: string) => {
-    if (!recording) {
-      return;
+const stopRecording = async (word: WordExercise, key: string) => {
+  if (!recording) return;
+
+  try {
+    await recording.stopAndUnloadAsync();
+
+    const uri = recording.getURI();
+    if (!uri) return;
+
+    setRecordedUris((prev) => ({ ...prev, [key]: uri }));
+
+    // 🔥 Web needs blob
+    const response = await fetch(uri);
+    const blob = await response.blob();
+
+    const formData = new FormData();
+    formData.append("session_id", "1");
+    formData.append("word_id", "1");
+    formData.append("audio_file", blob, "recording.m4a");
+
+    const res = await fetch("http://127.0.0.1:8000/records/", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      console.log("UPLOAD ERROR:", res.status, data);
+    } else {
+      console.log("UPLOAD SUCCESS:", data);
     }
 
-    try {
-      await recording.stopAndUnloadAsync();
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        playsInSilentModeIOS: true,
-      });
-
-      const uri = recording.getURI();
-      if (uri) {
-        setRecordedUris((prev) => ({ ...prev, [key]: uri }));
-      }
-
-      setFeedbackByKey((prev) => ({
-        ...prev,
-        [key]: word.feedback,
-      }));
-    } catch {
-      Alert.alert('녹음을 마치지 못했어요', '한 번 더 눌러서 다시 시도해주세요.');
-    } finally {
-      setRecording(null);
-      setRecordingKey(null);
-    }
-  };
+    setFeedbackByKey((prev) => ({
+      ...prev,
+      [key]: word.feedback,
+    }));
+  } catch (err) {
+    console.log("RECORD ERROR:", err);
+    Alert.alert("녹음을 마치지 못했어요", "다시 시도해주세요.");
+  } finally {
+    setRecording(null);
+    setRecordingKey(null);
+  }
+};
 
   const playMyVoice = async (key: string) => {
     const uri = recordedUris[key];
