@@ -29,12 +29,9 @@ export default function LoginScreen() {
     try {
       setIsSubmitting(true);
 
-      await submitParentLogin({
-        parentEmail: trimmedEmail,
-        childName: trimmedChildName,
-        age: childAge,
-      });
-
+      setTimeout(() => {
+      setIsSubmitting(false);
+      
       router.replace({
         pathname: '/(tabs)',
         params: {
@@ -43,25 +40,21 @@ export default function LoginScreen() {
           parentEmail: trimmedEmail,
         },
       });
-    } catch (error) {
-      Alert.alert(
-        'Backend connection error',
-        error instanceof Error ? error.message : 'Unable to connect to the API server.'
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    }, 500);
+  } catch (error) {
+    setIsSubmitting(false);
+    console.error(error);
+  }
+};
 
-  const handleGoBack = () => {
+const handleGoBack = () => {
     if (router.canGoBack()) {
       router.back();
-      return;
+    } else {
+      router.replace('/welcome');
     }
-
-    router.replace('/welcome');
   };
-
+  
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
