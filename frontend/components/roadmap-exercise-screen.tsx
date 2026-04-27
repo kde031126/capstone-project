@@ -410,7 +410,6 @@ const stopRecording = async (word: WordExercise, key: string) => {
 
   try {
     await recording.stopAndUnloadAsync();
-
     const uri = recording.getURI();
     if (!uri) return;
 
