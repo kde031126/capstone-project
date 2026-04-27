@@ -10,7 +10,7 @@ from models.practice_session import PracticeSession # user_id를 가져오기 �
 from schemas.record import RecordResponse
 from services import ai_engine, alignment
 
-router = APIRouter(tags=["Records"])
+router = APIRouter(prefix="/records", tags=["Records"])
 
 @router.post("/", response_model=RecordResponse, status_code=status.HTTP_201_CREATED)
 async def create_record(

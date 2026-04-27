@@ -36,5 +36,3 @@ app.include_router(records.router, prefix="/records", tags=["Records"])
 @app.get("/")
 def root():
     return {"message": "SsukSsuk Server is running"}
-
-
