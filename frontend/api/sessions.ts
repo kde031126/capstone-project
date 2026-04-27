@@ -1,8 +1,6 @@
-// 세션 구성 및 학습
-
 import { apiFetch } from './api';
 
-// --- Types (백엔드 Schemas 대응) ---
+// --- Types ---
 
 export interface SessionCreate {
   user_id: number;
@@ -21,6 +19,18 @@ export interface SessionResponse {
   ended_at: string | null;
 }
 
+// 녹음 결과 응답 타입
+export interface RecordResponse {
+  record_id: number;
+  session_id: number;
+  word_id: number;
+  is_correct: boolean;
+  child_text: string | null;
+  child_phonemes: string | null;
+  errors: any[];
+  created_at: string;
+}
+
 export interface SessionDetailResponse {
   session_info: {
     session_id: number;
@@ -30,51 +40,75 @@ export interface SessionDetailResponse {
     started_at: string;
     ended_at: string | null;
   };
-  report: any; // AI 리포트 데이터 (OpenAI 결과)
+  report: {
+    overall_feedback: string;
+    improvement_points: string[];
+    recommended_practice: string;
+  };
   stats: {
     total_words: number;
     correct_words: number;
     accuracy_rate: number;
   };
-  records: {
-    record_id: number;
-    word_id: number;
-    is_correct: boolean;
-    child_text: string;
-    child_phonemes: string;
-    errors: any[];
-  }[];
+  records: any[];
 }
 
 // --- API Functions ---
 
 /**
- * 1. 세션 시작 (POST /sessions/)
- * 오늘 학습할 단어 리스트를 추천받고 새 세션을 생성합니다.
+ * 1. 세션 시작
+ * 수정 포인트: '/sessions/' -> '/sessions/sessions/'
  */
 export const startSession = (payload: SessionCreate) => {
-  return apiFetch<SessionResponse>('/sessions/', {
+  return apiFetch<SessionResponse>('/sessions/sessions/', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
 };
 
 /**
- * 2. 세션 종료 (PATCH /sessions/{session_id})
- * 학습이 완료되었을 때 세션을 종료 상태로 변경합니다.
+ * 2. 녹음 데이터 전송
+ */
+export const uploadRecord = (sessionId: number, wordId: number, audioUri: string) => {
+  const formData = new FormData();
+  
+  const filename = audioUri.split('/').pop() || 'recording.m4a';
+  const match = /\.(\w+)$/.exec(filename);
+  const type = match ? `audio/${match[1]}` : `audio/m4a`;
+
+  // @ts-ignore
+  formData.append('file', {
+    uri: audioUri,
+    name: filename,
+    type,
+  });
+
+  // 백엔드 문서에 따라 쿼리 파라미터가 아닌 FormData에 넣어야 할 수도 있습니다.
+  formData.append('session_id', sessionId.toString());
+  formData.append('word_id', wordId.toString());
+
+  return apiFetch<RecordResponse>(`/records/`, {
+    method: 'POST',
+    body: formData,
+  });
+};
+
+/**
+ * 3. 세션 종료
+ * 수정 포인트: `/sessions/${sessionId}` -> `/sessions/sessions/${sessionId}`
  */
 export const endSession = (sessionId: number) => {
-  return apiFetch<SessionResponse>(`/sessions/${sessionId}`, {
+  return apiFetch<SessionResponse>(`/sessions/sessions/${sessionId}`, {
     method: 'PATCH',
   });
 };
 
 /**
- * 3. 세션 상세 및 리포트 조회 (GET /sessions/{session_id})
- * 특정 세션의 결과, 통계, 그리고 AI가 생성한 부모용 리포트를 가져옵니다.
+ * 4. 세션 상세 조회
+ * 수정 포인트: `/sessions/${sessionId}` -> `/sessions/sessions/${sessionId}`
  */
 export const getSessionDetail = (sessionId: number) => {
-  return apiFetch<SessionDetailResponse>(`/sessions/${sessionId}`, {
+  return apiFetch<SessionDetailResponse>(`/sessions/sessions/${sessionId}`, {
     method: 'GET',
   });
 };
