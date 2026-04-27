@@ -416,16 +416,19 @@ const stopRecording = async (word: WordExercise, key: string) => {
 
     setRecordedUris((prev) => ({ ...prev, [key]: uri }));
 
-    // 🔥 Web needs blob
-    const response = await fetch(uri);
-    const blob = await response.blob();
-
+    // ✅ 수정된 FormData 구성 방식
     const formData = new FormData();
     formData.append("session_id", "1");
     formData.append("word_id", "1");
-    formData.append("audio_file", blob, "recording.m4a");
 
-    const res = await fetch("http://127.0.0.1:8000/records/", {
+    // ReactNative에서는 객체 형태로 파일 정보를 넣어주는 것이 표준입니다.
+    formData.append("audio_file", {
+      uri: uri,
+      type: "audio/x-wav", // 또는 'audio/m4a'
+      name: "recording.wav", // 백엔드에서 인식하기 가장 쉬운 wav로 명시
+    } as any);
+
+    const res = await fetch("http://10.240.82.63:8000/records/", {
       method: "POST",
       body: formData,
     });
