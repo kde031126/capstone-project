@@ -1,13 +1,13 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 const progressItems = [
-  { label: '오늘 학습 수', value: '4개 단어' },
-  { label: '평균 정확도', value: '87%' },
-  { label: '연속 학습', value: '7일' },
+  { label: '오늘 학습 수', value: '5개 단어' },
+  { label: '평균 정확도', value: '80%' },
+  { label: '연속 학습', value: '1일' },
 ];
 
-const recentWords = ['사과', '우유', '토끼', '바나나'];
+const recentWords = ['토끼', '고양이', '강아지', '곰', '새'];
 
 function getText(value: string | string[] | undefined, fallback: string) {
   if (Array.isArray(value)) {
@@ -77,15 +77,13 @@ export default function ParentDashboardScreen() {
 
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>짧은 코멘트</Text>
-          <Text style={styles.sectionText}>• 오늘도 끝까지 집중해서 연습했어요. 정말 잘하고 있어요.</Text>
-          <Text style={styles.sectionText}>• 칭찬을 들으면 자신감이 더 올라가는 모습이 보여요.</Text>
+          <Text style={styles.sectionText}>• 아이가 끝까지 집중해서 한 세션을 완료했어요. 잘하고 있어요.</Text>          
+          <Text style={styles.sectionText}>• "ㅅ" 발음을 어려워하고 있어요. "사랑"과 같은 단어를 많이 사용해봐요!.</Text>
         </View>
 
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>오늘 발음 피드백</Text>
-          <Text style={styles.sectionText}>• “사과”는 “과” 부분을 조금 더 또렷하게 연습하면 좋아요.</Text>
-          <Text style={styles.sectionText}>• “토끼”는 마지막 “끼” 소리를 살짝 더 힘 있게 말하면 좋아요.</Text>
-          <Text style={styles.sectionText}>• 전체적으로 아주 잘 따라 하고 있어요. 계속 응원해주세요.</Text>
+          <Text style={styles.sectionTitle}>아동과 함께 격려 멘트</Text>
+          <Text style={styles.sectionText}>• 오늘 처음 시작했는데 수고했어. 앞으로도 꾸준히 잘해보자!</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

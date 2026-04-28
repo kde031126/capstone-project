@@ -25,60 +25,7 @@ type Lesson = {
 const lessons: Lesson[] = [
   {
     id: 'lesson-1',
-    title: '1단계 · 과일 길',
-    subtitle: '기초 낱말을 듣고 또박또박 말해요.',
-    emoji: '🍎',
-    words: [
-      {
-        word: '사과',
-        emoji: '🍎',
-        sound: '사-과',
-        hint: '입을 크게 열고 천천히 따라 말해요.',
-        focus: '과',
-        praise: '정말 잘했어요!',
-        feedback: '“과” 부분을 조금 더 또렷하게 말하면 더 멋진 발음이 돼요.',
-      },
-      {
-        word: '포도',
-        emoji: '🍇',
-        sound: '포-도',
-        hint: '두 음절을 또박또박 이어서 말해요.',
-        focus: '포',
-        praise: '좋은 시작이에요!',
-        feedback: '처음 “포” 소리를 조금 더 크게 내면 훨씬 선명해져요.',
-      },
-      {
-        word: '딸기',
-        emoji: '🍓',
-        sound: '딸-기',
-        hint: '딸 소리를 짧고 힘 있게 말해요.',
-        focus: '딸',
-        praise: '아주 좋아요!',
-        feedback: '“딸” 부분을 조금 더 힘 있게 말하면 더 정확해져요.',
-      },
-      {
-        word: '바나나',
-        emoji: '🍌',
-        sound: '바-나-나',
-        hint: '리듬 있게 세 번 나누어 말해요.',
-        focus: '나',
-        praise: '끝까지 잘 따라왔어요!',
-        feedback: '가운데 “나”를 한 번 더 또박또박 말하면 훨씬 좋아져요.',
-      },
-      {
-        word: '수박',
-        emoji: '🍉',
-        sound: '수-박',
-        hint: '마지막 박 소리를 또렷하게 마무리해요.',
-        focus: '박',
-        praise: '멋지게 마무리했어요!',
-        feedback: '“박” 받침을 살짝 더 분명히 말하면 더 좋아요.',
-      },
-    ],
-  },
-  {
-    id: 'lesson-2',
-    title: '2단계 · 동물 숲',
+    title: '1단계 · 동물',
     subtitle: '귀여운 동물 이름을 말해봐요.',
     emoji: '🐰',
     words: [
@@ -129,9 +76,63 @@ const lessons: Lesson[] = [
       },
     ],
   },
+    {
+    id: 'lesson-2',
+    title: '2단계 · 과일',
+    subtitle: '기초 낱말을 듣고 또박또박 말해요.',
+    emoji: '🍎',
+    words: [
+      {
+        word: '사과',
+        emoji: '🍎',
+        sound: '사-과',
+        hint: '',
+        focus: '과',
+        praise: '조금 아쉬워요.',
+        feedback: '"과" 대신 "가"라고 발음했어요. 다음에는 "과" 발음에 신경써봐요.',
+      },
+      {
+        word: '포도',
+        emoji: '🍇',
+        sound: '포-도',
+        hint: '',
+        focus: '',
+        praise: '잘했어요!',
+        feedback: '처음 “포” 소리를 조금 더 크게 내면 훨씬 선명해져요.',
+      },
+      {
+        word: '딸기',
+        emoji: '🍓',
+        sound: '딸-기',
+        hint: '',
+        focus: '',
+        praise: '아주 좋아요!',
+        feedback: '“딸” 부분을 조금 더 힘 있게 말하면 더 정확해져요.',
+      },
+      {
+        word: '바나나',
+        emoji: '🍌',
+        sound: '바-나-나',
+        hint: '',
+        focus: '',
+        praise: '잘하고 있어요!',
+        feedback: '이어지는 "나나"를 또박또박 말하면 훨씬 좋아져요.',
+      },
+      {
+        word: '수박',
+        emoji: '🍉',
+        sound: '수-박',
+        hint: '',
+        focus: '박',
+        praise: '멋지게 마무리했어요!',
+        feedback: '"박" 받침까지 확실하게 마무리하면 더 좋아져요."',
+      },
+    ],
+  },
+
   {
     id: 'lesson-3',
-    title: '3단계 · 음식 마을',
+    title: '3단계 · 음식',
     subtitle: '맛있는 음식 단어를 연습해요.',
     emoji: '🍚',
     words: [
@@ -184,7 +185,7 @@ const lessons: Lesson[] = [
   },
   {
     id: 'lesson-4',
-    title: '4단계 · 집 안 탐험',
+    title: '4단계 · 생활',
     subtitle: '생활 속 단어를 익혀봐요.',
     emoji: '🏠',
     words: [
@@ -321,6 +322,8 @@ export default function RoadmapExerciseScreen() {
   const currentFeedback = currentWordKey ? feedbackByKey[currentWordKey] : '';
   const hasCurrentRecording = currentWordKey ? Boolean(recordedUris[currentWordKey]) : false;
 
+  const [isAnalyzing, setIsAnalyzing] = useState(false); // 분석 중 로딩 상태
+
   useEffect(() => {
     return () => {
       playbackRef.current?.unloadAsync().catch(() => undefined);
@@ -422,10 +425,18 @@ export default function RoadmapExerciseScreen() {
         setRecordedUris((prev) => ({ ...prev, [key]: uri }));
       }
 
-      setFeedbackByKey((prev) => ({
-        ...prev,
-        [key]: word.feedback,
-      }));
+      setIsAnalyzing(true);
+      setFeedbackByKey((prev) => ({ ...prev, [key]: '' }));
+
+      setTimeout(() => {
+        setIsAnalyzing(false);
+        setFeedbackByKey((prev) => ({
+          ...prev,
+          [key]: word.feedback,
+        }));
+      }, 2800);
+
+      
     } catch {
       Alert.alert('녹음을 마치지 못했어요', '한 번 더 눌러서 다시 시도해주세요.');
     } finally {
@@ -496,7 +507,7 @@ export default function RoadmapExerciseScreen() {
                 <Text style={styles.completeEmoji}>⭐</Text>
                 <Text style={styles.completeTitle}>이 단계를 모두 끝냈어요!</Text>
                 <Text style={styles.completeText}>
-                  정말 잘했어요. 다음 원이 열렸으니 새로운 단어도 도전해보세요.
+                  정말 잘했어요. 다음 세션이 열렸으니 새로운 단어도 도전해보세요.
                 </Text>
                 <Pressable style={styles.nextButton} onPress={() => setSelectedLessonIndex(null)}>
                   <Text style={styles.nextButtonText}>로드맵으로 돌아가기</Text>
@@ -539,10 +550,7 @@ export default function RoadmapExerciseScreen() {
                   <View style={styles.feedbackCard}>
                     <Text style={styles.feedbackTitle}>{currentWord.praise}</Text>
                     <Text style={styles.feedbackText}>{currentFeedback}</Text>
-                    <Text style={styles.feedbackText}>
-                      이번에는 <Text style={styles.focusText}>{currentWord.focus}</Text> 부분에 조금 더 신경 쓰면 더
-                      좋아요.
-                    </Text>
+                    
 
                     {hasCurrentRecording ? (
                       <Pressable style={styles.playbackButton} onPress={() => playMyVoice(currentWordKey)}>
@@ -566,7 +574,7 @@ export default function RoadmapExerciseScreen() {
               <Text style={styles.eyebrow}>{childName}의 발음 여행</Text>
               <Text style={styles.title}>로드맵을 따라 하나씩 연습해요</Text>
               <Text style={styles.subtitle}>
-                원 하나마다 단어 5개가 들어 있어요. 첫 번째 원부터 순서대로 시작해보세요.
+                세션 하나마다 단어 5개가 들어 있어요. 첫 번째 세션부터 순서대로 시작해보세요.
               </Text>
             </View>
 
@@ -599,10 +607,10 @@ export default function RoadmapExerciseScreen() {
                       <Text style={styles.lessonInfoTitle}>{lesson.title}</Text>
                       <Text style={styles.lessonInfoText}>
                         {completed
-                          ? '완료! 다음 원이 열렸어요.'
+                          ? '완료! 다음 세션이 열렸어요.'
                           : unlocked
                             ? '단어 5개 연습하기'
-                            : '이전 원을 끝내면 열려요'}
+                            : '이전 세션을 끝내면 열려요'}
                       </Text>
                     </View>
                   </View>

@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   backButtonText: {
-    color: '#6C4CE4',
+    color: '#63D400',
     fontSize: 14,
     fontWeight: '700',
   },
@@ -192,10 +192,10 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   activeChip: {
-    backgroundColor: '#6C4CE4',
+    backgroundColor: '#63D400',
   },
   levelChipText: {
-    color: '#5B38D1',
+    color: '#63D400',
     fontWeight: '700',
   },
   activeChipText: {
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   saveButton: {
-    backgroundColor: '#6C4CE4',
+    backgroundColor: '#63D400',
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',
