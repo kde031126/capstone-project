@@ -1,7 +1,9 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+import os 
+from dotenv import load_model
 
-DATABASE_URL = "postgresql://postgres:ttubi2@localhost:5432/ssukssuk"
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 engine = create_engine(DATABASE_URL)
 
